@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SETTLE - Sports Booking</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        
+        .nav-link {
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .logout-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid white;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            text-decoration: none;
+            transition: background 0.3s;
+        }
+        
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+        
+        .welcome-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 1rem;
+        }
+        
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+        
+        .action-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+        }
+        
+        .action-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+        }
+        
+        .action-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 5px;
+            margin-top: 1rem;
+            transition: transform 0.2s;
+        }
+        
+        .action-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        
+        .feature-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+        
+        .section-title {
+            text-align: center;
+            color: #333;
+            margin: 3rem 0 2rem 0;
+            font-size: 1.8rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">SETTLE</div>
+        <div class="nav-links">
+            <a href="{{ url_for('home') }}" class="nav-link">Home</a>
+            <a href="{{ url_for('routes.view_facility') }}" class="nav-link">View Facilities</a>
+        </div>
+        <div class="user-info">
+            {% if username %}
+                <span>Welcome, {{ username }}!</span>
+                <a href="{{ url_for('routes.logout') }}" class="logout-btn">Logout</a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="welcome-card">
+            <h1>Welcome to SETTLE Sports Booking Platform</h1>
+            <p>Book your favorite sports facilities with ease!</p>
+        </div>
+        
+        <h2 class="section-title">Quick Actions</h2>
+        <div class="quick-actions">
+            <div class="action-card">
+                <div class="feature-icon">🏢</div>
+                <h3>View All Facilities</h3>
+                <p>Browse available sports facilities and their details</p>
+                <a href="{{ url_for('routes.view_facility') }}" class="action-btn">View Facilities</a>
+            </div>
+            
+            <div class="action-card">
+                <div class="feature-icon">📅</div>
+                <h3>Make a Booking</h3>
+                <p>Book your preferred time slot at any facility</p>
+                <a href="{{ url_for('routes.view_facility') }}" class="action-btn">Book Now</a>
+            </div>
+            
+            <div class="action-card">
+                <div class="feature-icon">📋</div>
+                <h3>My Bookings</h3>
+                <p>View and manage your current bookings</p>
+                <a href="#" class="action-btn">My Bookings</a>
+            </div>
+            
+            <div class="action-card">
+                <div class="feature-icon">⭐</div>
+                <h3>My Favorites</h3>
+                <p>Quick access to your bookmarked facilities</p>
+                <a href="#" class="action-btn">View Favorites</a>
+            </div>
+        </div>
+        
+        <h2 class="section-title">Platform Features</h2>
+        <div class="features">
+            <div class="feature-card">
+                <div class="feature-icon">🏀</div>
+                <h3>Multiple Sports</h3>
+                <p>Football, Basketball, Tennis, Swimming and more</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">📍</div>
+                <h3>Multiple Locations</h3>
+                <p>Facilities across the city for your convenience</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">💰</div>
+                <h3>Affordable Pricing</h3>
+                <p>Competitive rates for all facility bookings</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">🕐</div>
+                <h3>Flexible Hours</h3>
+                <p>Book facilities at your preferred time slots</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
