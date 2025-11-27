@@ -159,13 +159,13 @@ def booking(facility_id):
         end_datetime = start_datetime + timedelta(minutes=slot_minutes)
         
         # Validate capacity
-        if seats > facility.max_capacity:
-            flash(f"Maximum capacity is {facility.max_capacity} people.", "error")
+        if seats > schedule.seats_available:
+            flash(f"Maximum capacity is {schedule.seats_available} people.", "error")
             return redirect(url_for('routes.booking', facility_id=facility_id))
         
         # Check for overlapping bookings
         existing_booking = models.Booking.query.filter(
-            models.Booking.facility_id == facility_id,
+            models.Booking.user_id == session['user_id'],
             models.Booking.start < end_datetime,
             models.Booking.end > start_datetime,
             models.Booking.status != models.BookingStatus.CANCELLED
@@ -178,7 +178,7 @@ def booking(facility_id):
         # Calculate price
         duration_hours = slot_minutes / 60
         total_price = duration_hours * facility.price_per_hour * seats
-        
+        schedule.seats_available -= seats  # Update available seats
         # Create booking
         booking = models.Booking(
             user_id=session['user_id'],
@@ -187,7 +187,7 @@ def booking(facility_id):
             end=end_datetime,
             seats=seats,
             price=total_price,
-            status=models.BookingStatus.CONFIRMED
+            status=models.BookingStatus.PENDING 
         )
         
         db.session.add(booking)
@@ -232,17 +232,31 @@ def cancel_booking(booking_id):
         return jsonify({"error": "Cannot cancel past bookings"}), 400
     
     booking.status = models.BookingStatus.CANCELLED
+    Facility = models.Facility.query.get(booking.facility_id)
+    # Find the corresponding schedule
+    booking_weekday = (booking.start.weekday() + 1) % 7
+
+
+    schedule = models.Schedule.query.filter(
+        models.Schedule.facility_id == booking.facility_id,
+        models.Schedule.start_time == booking.start.time(),
+        models.Schedule.day_of_week == models.DayOfWeek(booking_weekday)
+    ).first()
+    if schedule:
+        schedule.seats_available += booking.seats  # Restore available seats
     db.session.commit()
     
     return jsonify({"message": "Booking cancelled successfully"})
 
-@routes.route("/admin-dashboard")
-def admin_dashboard():
-    if 'user_id' not in session or not session.get('is_admin'):
-        flash("Access denied.", "error")
-        return redirect(url_for('routes.login'))
+
+@routes.route("/process-payment/<int:booking_id>", methods=["POST"])
+def payment_success(booking_id  ):
+    booking = models.Booking.query.get_or_404(booking_id)
+    if booking.status != models.BookingStatus.PENDING:
+        flash("Invalid booking status for payment confirmation.", "error")
+    booking.status = models.BookingStatus.CONFIRMED
+    db.session.commit()
     
-    return render_template("admin_dashboard.html")
 
 @routes.route("/index")
 def index():

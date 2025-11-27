@@ -452,6 +452,8 @@
                                             {% set slot_minutes = facility.sport.default_slot_minutes %}
                                             {% set end_time = (datetime.combine(date_info.date, schedule.start_time) + timedelta(minutes=slot_minutes)).time() %}
                                             {% set price_for_slot = (slot_minutes / 60) * facility.price_per_hour %}
+                                            {% set seat_for_slot =schedule.seats_available %}
+
                                             
                                             <label class="slot-card" data-date="{{ date_info.date_str }}" data-schedule="{{ schedule.id }}">
                                                 <input type="radio" name="schedule_slot" value="{{ date_info.date_str }}|{{ schedule.id }}" required>
@@ -463,6 +465,9 @@
                                                 </div>
                                                 <div class="slot-price">
                                                     ${{ "%.2f"|format(price_for_slot) }}
+                                                </div>
+                                                <div class="seats_available ">
+                                                    {{ seat_for_slot }} seats-available
                                                 </div>
                                             </label>
                                         {% endfor %}

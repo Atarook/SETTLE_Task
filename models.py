@@ -46,14 +46,17 @@ class DayOfWeek(enum.Enum):
     SATURDAY = 6
 
 class Schedule(db.Model):
+    
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     facility_id = db.Column(db.Integer, db.ForeignKey("facility.id"), nullable=False)
     day_of_week = db.Column(db.Enum(DayOfWeek), nullable=False)  # Which day
     start_time = db.Column(db.Time, nullable=False)  # Time only, not datetime
     end_time = db.Column(db.Time, nullable=False)    # Time only, not datetime
-    
+    seats_available = db.Column(db.Integer)
     # Relationship
-    # facility = db.relationship("Facility", backref="schedules")
+
+    def set_seats_available(self, seats):
+        self.seats_available = seats
 
     def __repr__(self):
         return f'<Schedule {self.facility.name} - {self.day_of_week.name} {self.start_time}-{self.end_time}>'
@@ -82,7 +85,6 @@ class Facility(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     schedules = db.relationship("Schedule", backref="facility", lazy=True)
     sport = db.relationship("Sport", backref="facilities")
-
     def __repr__(self):
         return f'<Facility {self.name}>'
 

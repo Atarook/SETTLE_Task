@@ -109,6 +109,19 @@
             transition: transform 0.2s, box-shadow 0.2s;
         }
         
+        .booking-card.pending {
+            border-left-color: #ffc107;
+        }
+        
+        .booking-card.confirmed {
+            border-left-color: #28a745;
+        }
+        
+        .booking-card.cancelled {
+            border-left-color: #dc3545;
+            opacity: 0.7;
+        }
+        
         .booking-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
@@ -184,15 +197,21 @@
             margin-top: 1rem;
         }
         
-        .cancel-btn {
-            background: #dc3545;
-            color: white;
-            border: none;
+        .btn {
             padding: 0.5rem 1rem;
+            border: none;
             border-radius: 5px;
             font-size: 0.9rem;
             cursor: pointer;
-            transition: background 0.3s;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+        
+        .cancel-btn {
+            background: #dc3545;
+            color: white;
         }
         
         .cancel-btn:hover {
@@ -204,20 +223,22 @@
             cursor: not-allowed;
         }
         
-        .rebook-btn {
+        .payment-btn {
             background: #28a745;
             color: white;
-            border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 5px;
-            font-size: 0.9rem;
-            cursor: pointer;
-            text-decoration: none;
-            transition: background 0.3s;
+        }
+        
+        .payment-btn:hover {
+            background: #218838;
+        }
+        
+        .rebook-btn {
+            background: #667eea;
+            color: white;
         }
         
         .rebook-btn:hover {
-            background: #218838;
+            background: #5a67d8;
         }
         
         .no-bookings {
@@ -362,6 +383,7 @@
             <div class="booking-stats">
                 {% set confirmed_count = bookings | selectattr('status.value', 'equalto', 'confirmed') | list | length %}
                 {% set cancelled_count = bookings | selectattr('status.value', 'equalto', 'cancelled') | list | length %}
+                {% set pending_count = bookings | selectattr('status.value', 'equalto', 'pending') | list | length %}
                 {% set total_spent = bookings | selectattr('status.value', 'equalto', 'confirmed') | sum(attribute='price') %}
                 
                 <div class="stat-card">
@@ -373,8 +395,8 @@
                     <div class="stat-label">Confirmed</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number">{{ cancelled_count }}</div>
-                    <div class="stat-label">Cancelled</div>
+                    <div class="stat-number">{{ pending_count }}</div>
+                    <div class="stat-label">Pending</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-number">${{ "%.2f"|format(total_spent) }}</div>
@@ -387,7 +409,7 @@
                 
                 <div class="bookings-grid">
                     {% for booking in bookings %}
-                        <div class="booking-card">
+                        <div class="booking-card {{ booking.status.value }}">
                             <div class="booking-header">
                                 <div class="booking-facility-name">{{ booking.facility.name }}</div>
                                 <div class="status-badge status-{{ booking.status.value }}">
@@ -423,13 +445,22 @@
                             </div>
                             
                             <div class="booking-actions">
-                                {% if booking.status.value == 'confirmed' and booking.start.date() >= today %}
-                                    <button class="cancel-btn" onclick="cancelBooking({ booking,id })">
+                                <!-- Payment Button - Only show for PENDING bookings -->
+                                {% if booking.status.value == 'pending' %}
+                                    <button class="btn payment-btn" onclick="processPayment({{ booking.id }})">
+                                        Complete Payment
+                                    </button>
+                                {% endif %}
+                                
+                                <!-- Cancel Button - Only show for CONFIRMED and PENDING future bookings -->
+                                {% if (booking.status.value == 'confirmed' or booking.status.value == 'pending') and booking.start.date() >= today %}
+                                    <button class="btn cancel-btn" onclick="cancelBooking({{ booking.id }})">
                                         Cancel Booking
                                     </button>
                                 {% endif %}
                                 
-                                <a href="{{ url_for('routes.booking', facility_id=booking.facility.id) }}" class="rebook-btn">
+                                <!-- Rebook Button - Always show -->
+                                <a href="{{ url_for('routes.booking', facility_id=booking.facility.id) }}" class="btn rebook-btn">
                                     Book Again
                                 </a>
                             </div>
@@ -466,7 +497,8 @@
                         alert('Error: ' + data.error);
                     } else {
                         alert('Booking cancelled successfully');
-                        location.reload();
+                        updateBookingCard(bookingId, 'cancelled');
+                        updateStatistics();
                     }
                 })
                 .catch(error => {
@@ -474,6 +506,141 @@
                     alert('An error occurred while cancelling the booking');
                 });
             }
+        }
+        
+        function processPayment(bookingId) {
+            if (confirm('Proceed with payment for this booking?')) {
+                fetch('/process-payment/' + bookingId, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert('Error: ' + data.error);
+                    } else {
+                        alert('Payment successful! Your booking is now confirmed.');
+                        updateBookingCard(bookingId, 'confirmed');
+                        updateStatistics();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while processing payment');
+                });
+            }
+        }
+        
+        function updateBookingCard(bookingId, newStatus) {
+            // Find the booking card
+            const bookingCards = document.querySelectorAll('.booking-card');
+            let targetCard = null;
+            
+            bookingCards.forEach(card => {
+                const buttons = card.querySelectorAll('button');
+                buttons.forEach(button => {
+                    if (button.onclick && button.onclick.toString().includes(bookingId)) {
+                        targetCard = card;
+                    }
+                });
+            });
+            
+            if (!targetCard) return;
+            
+            // Update the card's visual appearance
+            targetCard.className = `booking-card ${newStatus}`;
+            
+            // Update the status badge
+            const statusBadge = targetCard.querySelector('.status-badge');
+            if (statusBadge) {
+                statusBadge.className = `status-badge status-${newStatus}`;
+                statusBadge.textContent = newStatus.toUpperCase();
+            }
+            
+            // Update the actions section
+            const actionsDiv = targetCard.querySelector('.booking-actions');
+            if (actionsDiv) {
+                if (newStatus === 'confirmed') {
+                    // Remove payment button, keep cancel and rebook buttons
+                    const paymentBtn = actionsDiv.querySelector('.payment-btn');
+                    if (paymentBtn) {
+                        paymentBtn.remove();
+                    }
+                } else if (newStatus === 'cancelled') {
+                    // Remove payment and cancel buttons, keep only rebook button
+                    const paymentBtn = actionsDiv.querySelector('.payment-btn');
+                    const cancelBtn = actionsDiv.querySelector('.cancel-btn');
+                    if (paymentBtn) paymentBtn.remove();
+                    if (cancelBtn) cancelBtn.remove();
+                    
+                    // Update card opacity for cancelled bookings
+                    targetCard.style.opacity = '0.7';
+                }
+            }
+            
+            // Add a subtle animation to indicate the change
+            targetCard.style.transform = 'scale(1.02)';
+            targetCard.style.transition = 'all 0.3s ease';
+            setTimeout(() => {
+                targetCard.style.transform = 'scale(1)';
+            }, 300);
+        }
+        
+        function updateStatistics() {
+            // Get current statistics
+            const allCards = document.querySelectorAll('.booking-card');
+            let totalCount = allCards.length;
+            let confirmedCount = 0;
+            let pendingCount = 0;
+            let cancelledCount = 0;
+            let totalSpent = 0;
+            
+            allCards.forEach(card => {
+                const statusBadge = card.querySelector('.status-badge');
+                if (statusBadge) {
+                    const status = statusBadge.textContent.toLowerCase();
+                    
+                    if (status === 'confirmed') {
+                        confirmedCount++;
+                        // Extract price for total spent calculation
+                        const priceElement = card.querySelector('.booking-detail:last-child .detail-value');
+                        if (priceElement) {
+                            const priceText = priceElement.textContent.replace('$', '');
+                            totalSpent += parseFloat(priceText) || 0;
+                        }
+                    } else if (status === 'pending') {
+                        pendingCount++;
+                    } else if (status === 'cancelled') {
+                        cancelledCount++;
+                    }
+                }
+            });
+            
+            // Update the statistics cards
+            const statCards = document.querySelectorAll('.stat-card');
+            if (statCards[0]) {
+                statCards[0].querySelector('.stat-number').textContent = totalCount;
+            }
+            if (statCards[1]) {
+                statCards[1].querySelector('.stat-number').textContent = confirmedCount;
+            }
+            if (statCards[2]) {
+                statCards[2].querySelector('.stat-number').textContent = pendingCount;
+            }
+            if (statCards[3]) {
+                statCards[3].querySelector('.stat-number').textContent = '$' + totalSpent.toFixed(2);
+            }
+            
+            // Add animation to statistics
+            statCards.forEach(card => {
+                card.style.transform = 'scale(1.05)';
+                card.style.transition = 'transform 0.2s ease';
+                setTimeout(() => {
+                    card.style.transform = 'scale(1)';
+                }, 200);
+            });
         }
     </script>
 </body>
